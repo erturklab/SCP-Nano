@@ -285,7 +285,7 @@ relative_contrast_sum = intensity_contrast_signal(path_organpred_slice=path_orga
                                                   path_output=path_output, organ_key=cur_organ_key, background_mean=background_mean, 
                                                   path_organmask_slice = path_organmask_slice, threshold=0.5)
 
-
+print(relative_contrast_sum)
 path_raw_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_raw.nii.gz")
 path_pred_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_crop", f"organ_{organ_name}_pred.nii.gz")
 path_heatmap_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_crop", f"organ_{organ_name}_contrast_density_norm.nii.gz")

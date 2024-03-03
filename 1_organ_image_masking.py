@@ -189,10 +189,10 @@ path_keys           = os.path.join(dir_wholebody_data, "organ_keys.txt")
 path_raw            = os.path.join(dir_wholebody_data, "C01", "")
 
 # Path of the organ annotation tiff sequence
-path_organ_mask          = os.path.join(dir_wholebody_data, "organmask", "")
+path_organ_mask          = os.path.join(dir_wholebody_data, "organ_mask", "")
 
 # Where to save cropped organ images and masks
-path_organ_output         = os.path.join(dir_wholebody_data, "organresults", "")
+path_organ_output         = os.path.join(dir_wholebody_data, "organ_results", "")
 
 
 # Check the length of whole-body raw sequence and organ mask sequence to be the same

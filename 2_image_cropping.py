@@ -7,8 +7,10 @@ dir_wholebody_data = ""
 organ_name = "" # lung, liver, heart, head, spleen, kidney
 # set the patch size and overlap size between patches
 # set the cropping start and end coordinates, specifying a bounding box region to do the cropping
-# setting requirement: cropping_end - cropping_start - patch_overlap = n * (patch_size-patch_overlap), n is an iteger
-patch_size = [418, 460, 600]
+
+# !!!Setting requirement: cropping_end - cropping_start - patch_overlap = n * (patch_size-patch_overlap), n is an iteger
+# The order is [x_dim, y_dim, z_dim]
+patch_size = [418, 460, 600] 
 patch_overlap = [19, 15, 0]
 cropping_start = [0, 0, 0]
 cropping_end = [7600, 1350, 600]
