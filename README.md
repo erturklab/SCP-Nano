@@ -88,7 +88,10 @@ Overview of the SCP-Nano workflow. Individual steps are explained below.
 * Run 3_patch_norm.py. Patches of whole-organ raw image will be normalized based on the intensity range of whole organ, and then saved in the folder `dir_wholebody_data/organ_results/organ_{organ name}_crop/local_C01_norm/`.
 
 ### 4. Deep-learning segmentation inference for patches of every organ
-* Download trained models from [here](https://drive.google.com/drive/folders/1IqMq_vp3m--4gaWJq-TEzkrDSjV2BgMK?usp=sharing), then unzip the file to [RESULTS_FOLDER](./4_DL_segmentation_pred/RESULTS_FOLDER/).
+* Create folders `nnUNet_raw_data_base`, `nnUNet_preprocessed`, `RESULTS_FOLDER` under [this folder](./4_DL_segmentation_pred/).
+
+* Download trained models from [here](https://drive.google.com/file/d/1Ad4iSqi6m1xHzLqiCaYzrymBZQLZeO3X/view?usp=sharing), then unzip the file to folder `RESULTS_FOLDER`.
+
 * Run segmentation inference for patches of one organ:
   ```
    export nnUNet_raw_data_base="{dir_you_save_SCPNAno}/4_DL_segmentation_pred/nnunet/nnUNet_raw_data_base"
