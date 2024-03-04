@@ -72,7 +72,7 @@ Overview of the SCP-Nano workflow. Individual steps are explained below.
 ### 1. Per-organ raw image and mask image cropping 
 * Set the variable `dir_wholebody_data` in [1_organ_image_masking.py](1_organ_image_masking.py) to the directrory of one mouse data containing raw image TIFF series, organ annotation TIFF series and organ label detail txt file.
 
-* Run 1_organ_image_masking.py. The resulted raw image TIFF series as well as the mask TIFF series for every organ will be respectively in the folders `dir_wholebody_data/organ_results/organ_{organ name}_raw` and  `dir_wholebody_data/organ_results/organ_{organ ame}_mask`.
+* Run 1_organ_image_masking.py. The resulted raw image TIFF series as well as the mask TIFF series for every organ will be respectively in the folders `dir_wholebody_data/organ_results/organ_{organ name}_raw` and  `dir_wholebody_data/organ_results/organ_{organ name}_mask`.
 
 
 ### 2. Crop organ raw images to small overlapping patches
