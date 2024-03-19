@@ -1,0 +1,6 @@
+{
+    "organ_masking":{},
+    "object_detection":{},
+    "heatmap_generation":{},
+    "statistics":{}
+}
