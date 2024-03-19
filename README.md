@@ -15,7 +15,8 @@ SCP-Nano (Single Cell Precision Nanocarrier Identification pipeline) is a pipeli
 
 ## Requirements
 ### system requirements
-Linux system with GPU (at least 10 GB GPU RAM) and CPU (at least 20 cores), and with 400 GB RAM.
+Linux system with GPU (at least 10 GB GPU RAM) and CPU (at least 20 cores), and with 400 GB RAM. One mouse scan is x TB and the size is up to 20000 x 10000
+x 1000, therefore SCP-Nano has such a large requirement on RAM.  
 
 ### data requirements
 * Raw image data saved as a series of 16-bit TIFF files, one per z-plane. 
