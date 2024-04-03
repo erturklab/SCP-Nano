@@ -17,7 +17,7 @@ def compute_organ_intensity_range(path_organ_raw, path_organ_mask, path_output_o
     intensity_min = 65535
     intensity_max= 0
     z_dim = len(os.listdir(path_organ_raw))
-    x_dim, y_dim = cv2.imread(path_organ_raw, os.listdir(path_organ_raw)[0])
+    x_dim, y_dim = cv2.imread(path_organ_raw+os.listdir(path_organ_raw)[0], -1).shape
     organ_mask_raw_arr = np.zeros((x_dim, y_dim, z_dim))
     for z, z_slice in enumerate(sorted(os.listdir(path_organ_raw))):
         img_organ_raw = cv2.imread(path_organ_raw + z_slice, -1)
@@ -61,22 +61,22 @@ while line:
 organ_keys_list = list(keys_dict.keys())
 organ_names_list = list(keys_dict.values())
 cur_organ_key = organ_keys_list[organ_names_list.index(cur_organ_name)]
-path_organ_raw = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_raw", "")
-path_organ_mask = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_mask", "")
-path_organ_raw_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_raw.nii.gz")
+path_organ_raw = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_raw", "")
+path_organ_mask = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_mask", "")
+path_organ_raw_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_raw.nii.gz")
 intensity_min, intensity_max = compute_organ_intensity_range(path_organ_raw=path_organ_raw, path_organ_mask=path_organ_mask, 
                                                              path_output_organ_raw_nifti= path_organ_raw_nifti,
                                                              organ_key = cur_organ_key)
 
 
 # patch normalization based on organ intensity range
-path_patches = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_crop", "local_C01", "")
-path_patches_norm = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_crop", "local_C01_norm", "")
+path_patches = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop", "local_C01", "")
+path_patches_norm = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop", "local_C01_norm", "")
 
 if not os.path.exists(path_patches_norm):
   os.mkdir(path_patches_norm) 
   
-volumes_list = sorted(glob.glob(os.path.join(path_patches, '*.nii.gz')))
+volumes_list = sorted(glob.glob(os.path.join(path_patches, '*.nii')))
 print(len(volumes_list))
 for myfile in volumes_list:    
     volume= filehandling.readNifti(myfile)
