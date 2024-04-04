@@ -7,7 +7,7 @@ import imageio as io
 
 def _get_bb(img:np.array, index:int):
     """
-    Get the bounding box of a numpy array for a given index
+    Get the bounding box of a labeled instance given the label index
 
     img: 2d or 3d numpy array of organ mask
     index: select one organ by its label value in the mask to calculate its bounding box 
