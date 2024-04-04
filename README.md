@@ -86,7 +86,7 @@ Overview of the SCP-Nano workflow. Individual steps are explained below.
 ### 3. Patch normalization before inference 
 * Set the variable `dir_wholebody_data` in [3_patch_norm.py](3_patch_norm.py) as in Step 1, and the variable `cur_organ_name` as the name of the organ whose patches will be normalized.
 
-* Run 3_patch_norm.py. Patches of whole-organ raw image will be normalized based on the intensity range of whole organ, and then saved in the folder `dir_wholebody_data/organ_results/organ_{cur_organ name}_crop/local_C01_norm/`.
+* Run 3_patch_norm.py. Patches of whole-organ raw image will be normalized based on the intensity range of whole organ, and then saved in the folder `dir_wholebody_data/organ_results/organ_{organ name}_crop/local_C01_norm/`.
 
 ### 4. Deep-learning segmentation inference for patches of every organ
 * Create folders `nnUNet_raw_data_base`, `nnUNet_preprocessed`, `RESULTS_FOLDER` under [this folder](./4_DL_segmentation_pred/).
@@ -95,9 +95,9 @@ Overview of the SCP-Nano workflow. Individual steps are explained below.
 
 * Run segmentation inference for patches of one organ:
   ```
-   export nnUNet_raw_data_base="{dir_you_save_SCPNAno}/4_DL_segmentation_pred/nnunet/nnUNet_raw_data_base"
-   export nnUNet_preprocessed="{dir_you_save_SCPNAno}/4_DL_segmentation_pred/nnunet/nnUNet_preprocessed"
-   export RESULTS_FOLDER="{dir_you_save_SCPNAno}/4_DL_segmentation_pred/nnunet/RESULTS_FOLDER"
+   export nnUNet_raw_data_base="{dir_you_save_SCPNAno}/4_DL_segmentation_pred/nnUNet_raw_data_base"
+   export nnUNet_preprocessed="{dir_you_save_SCPNAno}/4_DL_segmentation_pred/nnUNet_preprocessed"
+   export RESULTS_FOLDER="{dir_you_save_SCPNAno}/4_DL_segmentation_pred/RESULTS_FOLDER"
    cd dir_you_save_SCPNAno/4_DL_segmentation_pred/nnunet/inference/
 	```
   For LNP data segmentation:
