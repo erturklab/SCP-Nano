@@ -1,5 +1,5 @@
 import sys
-import filehandling
+from utils import filehandling
 import os
 import numpy as np
 import cv2
