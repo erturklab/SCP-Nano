@@ -17,8 +17,9 @@ def compute_organ_intensity_range(path_organ_raw, path_organ_mask, path_output_o
     intensity_min = 65535
     intensity_max= 0
     z_dim = len(os.listdir(path_organ_raw))
-    x_dim, y_dim = cv2.imread(path_organ_raw+os.listdir(path_organ_raw)[0], -1).shape
-    organ_mask_raw_arr = np.zeros((x_dim, y_dim, z_dim))
+    x_dim, y_dim = cv2.imread(path_organ_raw + os.listdir(path_organ_raw)[0], -1).shape
+    print(x_dim, y_dim, z_dim)
+    organ_mask_raw_arr = np.zeros((x_dim, y_dim, z_dim), np.uint16)
     for z, z_slice in enumerate(sorted(os.listdir(path_organ_raw))):
         img_organ_raw = cv2.imread(path_organ_raw + z_slice, -1)
         img_organ_raw= np.squeeze(img_organ_raw)
@@ -27,7 +28,7 @@ def compute_organ_intensity_range(path_organ_raw, path_organ_mask, path_output_o
         img_organ_mask = img_organ_mask==int(organ_key)
         
         organ_mask_raw_slice = img_organ_raw*img_organ_mask
-        organ_mask_raw_arr[:, :, z]= organ_mask_raw_slice
+        organ_mask_raw_arr[:, :, z]= organ_mask_raw_slice.astype(np.uint16)
         if len(organ_mask_raw_slice[img_organ_mask==True])==0:
             continue          
         if np.min(organ_mask_raw_slice[img_organ_mask==True])<intensity_min:
