@@ -167,8 +167,7 @@ def mask_organs(organs_bbs, path_wholebody_raw, path_wholebody_organ_mask, path_
             print(f"Selecting Z\t{z}/{max_z}\tOrgan \t{organ_name}", end="\r",flush=True)
             xmin, xmax, ymin, ymax, zmin, zmax = organs_bbs[organ_index]
             try:
-                if zmin <= z < zmax:
-                    
+                if zmin <= z < zmax:                    
                     z_idx = z-zmin
                     io.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_raw', f"slice_{z_idx:04}.tif"), img_raw[xmin:xmax, ymin:ymax])
                     io.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_mask', f"slice_{z_idx:04}.tif"), img_organ_mask[xmin:xmax, ymin:ymax])
