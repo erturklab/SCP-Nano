@@ -3,25 +3,22 @@ from utils import filehandling
 import os
 import numpy as np
 import cv2
-import multiprocessing
 import functools
 import datetime
 from libtiff import TIFF
 import shutil
 from PIL import Image
-
+from monai.data.utils import dense_patch_slices
 
 def imresize(arr, factor):
     size = tuple([int(i * factor) for i in arr.shape])
     return np.array(Image.fromarray(arr).resize(size)).T
 
-def save_patch(region, bitdepth, file_format, patch, multiprocessing="None"):
+def save_patch(region, bitdepth, file_format, patch):
     before = datetime.datetime.now()
     bb = patch['boundingbox']
     patch['volume'] = np.zeros((bb[0],bb[1],bb[2]), 'uint'+str(bitdepth))
     flist = sorted(os.listdir(region['dataset']['sourcefolder'] + region['dataset']['channelname']))
-    if multiprocessing != "None":
-        print('Patch ' + str(patch['id']) + ' was taken by ' + multiprocessing.current_process().name)
     for z in range(0,bb[2]):
         file = flist[patch['offset'][2] + z]
         image = cv2.imread(region['dataset']['sourcefolder'] + region['dataset']['channelname'] + '/' + file, 2) # '2' forces cv2 to keep original bitdepth
@@ -74,7 +71,8 @@ def slice_zdim(parameters, zdim, region, file_format,save_cache=False):
             #z = tiff
             y0 = patch['offset'][0]
             x0 = patch['offset'][1]
-            image_cut = np.zeros(region['partitioning']['patch_size'][:2])
+            #image_cut = np.zeros(region['partitioning']['patch_size'][:2])
+            image_cut = np.zeros(patch['boundingbox'][:2])
             image_cut = insert_array(image_cut, image[y0:y0+bb[0],x0:x0+bb[1]], 0, 0)
             path = os.path.join(parameters['dataset']['cachefolder'], "patch" + str(patch["id"]))
 
@@ -160,19 +158,14 @@ def sort_tifs(parameters, patch):
         os.rename((path_old),(path_new))
 
 def cut_volume(parameters):
-    #%% Define parameters
+    ##  Define parameters
     print(parameters['dataset']['syncfolder'])
-    num_cores_to_use = multiprocessing.cpu_count()-1
     file_format = parameters["file_format"] # choose from Nifti or TIFF
     region = {}
-    region['name'] = parameters["region_name"]
-    thumbnail_ds = 0.1 # Downsampling for thumbnails of patches
-    # Parameters: data set
-    region['dataset'] =  parameters["dataset"]
-    # Parameters: cropping & dicing
-    region['partitioning'] = parameters['partitioning']
+    region['dataset'] =  parameters["dataset"]  # Parameters: data set
+    region['partitioning'] = parameters['partitioning'] # Parameters: cropping & dicing
 
-    #%% Set up folders
+    ##  Set up folders
     if not os.path.exists(parameters['dataset']['localfolder']):
         os.makedirs(parameters['dataset']['localfolder'])
     if not os.path.exists(parameters['dataset']['syncfolder']):
@@ -180,10 +173,8 @@ def cut_volume(parameters):
     if not os.path.exists(parameters['dataset']['cachefolder']):
         os.makedirs(parameters['dataset']['cachefolder'])
 
-    #%% Set up patches
-
-    # Compute further parameters
-    (fsize, dims, bitdepth) = filehandling.estimateVolSize(region['dataset']['sourcefolder'],region['dataset']['channelname'])
+    ##  Set up patches    
+    (fsize, dims, bitdepth) = filehandling.estimateVolSize(region['dataset']['sourcefolder'],region['dataset']['channelname']) # Compute further parameters of dataset
     region['dataset']['file_size'] = fsize
     region['dataset']['bounding_box'] = dims
     region['dataset']['bit_depth'] = bitdepth
@@ -191,24 +182,22 @@ def cut_volume(parameters):
     region['dataset']['max_value'] = 0
     patch_size = np.asarray(region['partitioning']['patch_size'],np.uint16)
     patch_overlap = np.asarray(region['partitioning']['patch_overlap'],np.uint16)
-    n_patches = np.asarray((np.asarray(region['partitioning']['cropping_boundingbox']) - np.asarray(region['partitioning']['cropping_offset']) - patch_overlap)/ (patch_size - patch_overlap),np.uint8)
+    region['partitioning']['cropping_offset'] = [0, 0, 0]
+    region['partitioning']['cropping_boundingbox'] = [dims[0], dims[1], dims[2]]
+    n_patches = np.ceil((np.asarray(region['partitioning']['cropping_boundingbox']) - np.asarray(region['partitioning']['cropping_offset']) - patch_overlap)/ (patch_size - patch_overlap))
     print('Number of patches: ',n_patches )
     region['partitioning']['patches_per_dim'] = n_patches
-    # Initialize patches
-    region['patches'] = []
-    patch_id = 0
-    for ny in range(0,n_patches[0]):
-        for nx in range(0,n_patches[1]):
-            for nz in range(0,n_patches[2]):
-                patch = {}
-                patch['id'] = patch_id
-                patch['patchstep'] = [ny, nx, nz]
-                patch['offset'] = region['partitioning']['cropping_offset'] + (patch_size - patch_overlap) * patch['patchstep']
-                patch['boundingbox'] = patch_size
-                region['patches'].append(patch)
-                patch_id += 1
-    # Find patches that still need to be cut
-    
+    patch_interval = [patch_size[k]- patch_overlap[k] for k in range(len(patch_size))]
+    patches_coords = dense_patch_slices(region['partitioning']['cropping_boundingbox'], region['partitioning']['patch_size'], patch_interval)
+    region['patches'] = [] # Initialize patches
+    for patch_id in range(len(patches_coords)):
+        patch = {}
+        patch['id'] = patch_id
+        patch['offset'] = [patch_slice.start for patch_slice in patches_coords[patch_id]]
+        patch['boundingbox'] = np.asarray([patch_slice.stop-patch_slice.start for patch_slice in patches_coords[patch_id]],np.uint16)
+        region['patches'].append(patch)
+    print(region['patches'])
+    ##  Find patches that still need to be cut
     remaining_patches = []
     for patch in region['patches']:
         if not str(patch['id']) in parameters['advanced']['empty_patches']:
@@ -221,84 +210,30 @@ def cut_volume(parameters):
     filehandling.psave(region_path_, region) # saving initial region file (will be updated later on)| beginn parameters with ROOTP + 
     print('Patches initialized, now segmenting volume')
 
-    #%% Execution
-    # Cut volume into patches and save them to file    
-    if parameters['multiprocessing']:
-        print("Using multiprocessing to cut volume to patches...")
-        pool = multiprocessing.Pool(processes=num_cores_to_use)
-        pool.map(functools.partial(save_patch,
-                                region=region, 
-                                bitdepth=bitdepth, 
-                                multiprocessing=multiprocessing, 
-                                file_format=file_format), 
-                            remaining_patches)
-        pool.close()
-    else:
-        single_tiff_list = []
-        unique_set = set()
+    ## Cut volume into patches and save them to file    
+    single_tiff_list = []
+    unique_set = set()
+    for x in remaining_patches:
+        unique_set.add(x["offset"][2])
+    unique_set = sorted(unique_set)
+    for z_dim in unique_set:
+        z_dim_list = []
         for x in remaining_patches:
-            unique_set.add(x["offset"][2])
-        unique_set = sorted(unique_set)
-        for z_dim in unique_set:
-            z_dim_list = []
-            for x in remaining_patches:
-                if x["offset"][2] == z_dim: z_dim_list.append(x)
-            single_tiff_list.append(z_dim_list)
+            if x["offset"][2] == z_dim: z_dim_list.append(x)
+        single_tiff_list.append(z_dim_list)
 
-        print("Cutting " + str(len(single_tiff_list)) + " Z dimensions...")
-        print(single_tiff_list)
-        for z_dim in single_tiff_list:
-            print("Slicing z dimension " + str(single_tiff_list.index(z_dim)))
-            before = datetime.datetime.now()
-            region = slice_zdim(parameters, z_dim, region,"Nifti",save_cache=parameters['partitioning']['safe_cache'])
-            after = datetime.datetime.now()
-            delta = after - before
-            total = delta * len(single_tiff_list)
-            print("Patch took " + str(delta) + "seconds. Overall remaining dataset (estimated): " + str(total))
-    
-    print('Entire volume cut to patches and saved to file. Creating thumbnails...')
-    
-    # Create thumbnails for all patches
-    bbx = int((region['partitioning']['cropping_boundingbox'][0] - parameters['partitioning']['cropping_offset'][0])*thumbnail_ds)
-    bby = int((region['partitioning']['cropping_boundingbox'][1] - parameters['partitioning']['cropping_offset'][1])*thumbnail_ds)
-    bbz = int((region['partitioning']['cropping_boundingbox'][2] - parameters['partitioning']['cropping_offset'][2])*thumbnail_ds)
-    mpx = np.zeros((bby,bbz,region['partitioning']['patches_per_dim'][0]),np.float32)
-    mpy = np.zeros((bbx,bbz,region['partitioning']['patches_per_dim'][1]),np.float32)
-    mpz = np.zeros((bbx,bby,region['partitioning']['patches_per_dim'][2]),np.float32)
-    dx = int((region['partitioning']['patch_size'][0] - region['partitioning']['patch_overlap'][0])*thumbnail_ds)
-    dy = int((region['partitioning']['patch_size'][1] - region['partitioning']['patch_overlap'][1])*thumbnail_ds)
-    dz = int((region['partitioning']['patch_size'][2] - region['partitioning']['patch_overlap'][2])*thumbnail_ds)
-    print('ds',dx , dy ,  dz)
-    print('bbs',bbx,bby,bbz)
-    print('shapes of mps:',  mpx.shape, mpy.shape, mpz.shape)
-    for patch in region['patches']:
-        print('Creating thumbnail for patch #' + str(patch['id']))
-        if not str(patch['id']) in parameters['advanced']['empty_patches']:
-            path_v = os.path.join(region['dataset']['localfolder'], 'patchvolume_' + str(patch['id']))
-            pvol = filehandling.readNifti(path_v)
-            pvol = pvol[0:int(dx/thumbnail_ds),0:int(dy/thumbnail_ds),0:int(dz/thumbnail_ds)]
-            s = patch['patchstep']
-            print('ds',dx,dy,dz)
-            print(s)
-            print(imresize(np.max(pvol,2),thumbnail_ds).shape)
-            mpz[s[0]*dx:(s[0]+1)*dx, s[1]*dy:(s[1]+1)*dy, s[2]] = imresize(np.max(pvol,2),thumbnail_ds, mode='F')
-            mpz[s[0]*dx,:,s[2]] = mpz[:,s[1]*dy,s[2]] = 0
+    print("Cutting " + str(len(single_tiff_list)) + " Z dimensions...")
+    print(single_tiff_list)
+    for z_dim in single_tiff_list:
+        print("Slicing z dimension " + str(single_tiff_list.index(z_dim)))
+        before = datetime.datetime.now()
+        region = slice_zdim(parameters, z_dim, region,"Nifti",save_cache=parameters['partitioning']['safe_cache'])
+        after = datetime.datetime.now()
+        delta = after - before
+        total = delta * len(single_tiff_list)
+        print("Patch took " + str(delta) + "seconds. Overall remaining dataset (estimated): " + str(total))
 
-    # Update and save region overview to file
-    region['thumbnails'] = {}
-    region['thumbnails']['downsampling'] = thumbnail_ds
-    region['thumbnails']['MaxProjections_Z'] = mpz
+    print('Entire volume cut to patches and saved to file.')
     print('Saving region file to:', region['dataset']['syncfolder'] + 'region')
-    
     filehandling.psave(region['dataset']['syncfolder'] + 'region', region)
-    print('Region file updated with thumbnails.')
     print('Done.')
-
-
-
-
-
-
-
-
-
