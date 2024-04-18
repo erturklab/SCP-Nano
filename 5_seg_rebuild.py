@@ -32,12 +32,14 @@ def rebuild_organ_seg_from_patch(path_patches_pred, path_patch_region, path_outp
 
     print(f"{datetime.datetime.now()} Loading patches...")
     for i, patch_item in enumerate(os.listdir(path_patches_pred)):
+        if not patch_item.endswith('.nii.gz'):
+            continue
         patch                   = filehandling.readNifti(os.path.join(path_patches_pred, patch_item))
         patch                   = patch.astype(np.uint8)
         patch_id                = int(patch_item.replace("patchvolume_","").replace(".nii.gz","")) 
         try:
             off_x, off_y, off_z     = region["patches"][patch_id]["offset"]
-            size_x, size_y, size_z  = region["partitioning"]["patch_size"]
+            size_x, size_y, size_z  = region["patches"][patch_id]["boundingbox"]
 
             print(f"{datetime.datetime.now()} Processing\t {patch_item}\t\t\
                     ({i}/{len_p})\t\
@@ -90,9 +92,3 @@ path_nifti_out       = os.path.join(dir_wholebody_data, "organ_results", f"organ
 
 rebuild_organ_seg_from_patch(path_patches_pred=path_patches_pred, path_patch_region=path_region,
                              path_output=path_out, path_output_nifti=path_nifti_out, organ_name=organ_name)
-                             
-
-
-
-
-
