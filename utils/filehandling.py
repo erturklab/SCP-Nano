@@ -8,7 +8,6 @@ import pickle
 import nibabel as nib
 
 
-
 def psave(path, variable):
     '''
     psave(path, variable)
@@ -306,30 +305,3 @@ def readNifti(path,reorient=None):
         volume = np.flip(volume,0) # head  should by at y=0
         volume = np.flip(volume,2) # belly should by at x=0
     return volume
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
