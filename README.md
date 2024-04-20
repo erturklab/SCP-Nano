@@ -79,7 +79,7 @@ Overview of the SCP-Nano workflow. Individual steps are explained below.
 ### 2. Crop organ raw images to small overlapping patches
 * Set the variable `dir_wholebody_data` in [2_image_cropping.py](2_image_cropping.py) as in Step 1, and the variable `organ_name` as the name of the organ to be cropped.
 
-* Set the variable `patch_size`, `patch_overlap`, `cropping_start`, `cropping_end` following the instructions in the code comments.
+* Set the variable `patch_size`, `patch_overlap`.
 
 * Run 2_image_cropping.py. The resulted patches of whole-organ raw image will be saved in the folder `dir_wholebody_data/organ_results/organ_{organ name}_crop/local_C01/`.
 
@@ -114,7 +114,7 @@ Overview of the SCP-Nano workflow. Individual steps are explained below.
   ```
 
 ### 5. Assembling patch prediction to get nanoparticle segmentation map for whole organ
-* Set the variable `dir_wholebody_data` in [5_seg_rebuild.py](5_seg_rebuild.py) as in Step 1, and the variable `organ_name` as the name of the organ.
+* Set the variable `dir_wholebody_data` in [5_seg_rebuild.py](5_seg_rebuild.py) as in Step 1, and the variable `cur_organ_name` as the name of the organ.
 
 * Run 5_seg_rebuild.py. The resulted segmentation map TIFF series will be saved in the folder `dir_wholebody_data/organ_results/organ_{organ name}_crop/TIFF_pred_norm/`.
 
