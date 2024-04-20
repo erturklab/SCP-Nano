@@ -256,7 +256,6 @@ dir_wholebody_data = ""
 # name of organ to crop into patches 
 cur_organ_name = ""
 
-# compute the intensity range of an organ raw image
 path_organ_keys           = os.path.join(dir_wholebody_data, "organ_keys.txt")
 keys_dict = {}
 f_organ_keys = open(path_organ_keys)
