@@ -1,7 +1,8 @@
 import os
 import datetime
 import numpy as np
-from libtiff import TIFFimage
+import cv2
+import imageio as io
 from utils import filehandling
 
 def rebuild_organ_seg_from_patch(path_patches_pred, path_patch_region, path_organmask_slice, path_output, path_output_nifti, organ_name, organ_key, threshold=0.5):
@@ -65,6 +66,7 @@ def rebuild_organ_seg_from_patch(path_patches_pred, path_patch_region, path_orga
     volume = volume[:-100,:-100,:-50]
     print(f"{datetime.datetime.now()} Setting everything to 1")
     volume[volume>threshold]=1
+    print(f"{datetime.datetime.now()} Writing TIFF")
     volume = volume.astype(np.uint8)
     for i in range(volume.shape[-1]):
         img_organmask = cv2.imread(os.path.join(path_organmask_slice, sorted(os.listdir(path_organmask_slice))[i]), -1)
@@ -72,17 +74,12 @@ def rebuild_organ_seg_from_patch(path_patches_pred, path_patch_region, path_orga
         img_organmask[img_organmask!=organ_key]=0
         img_organmask[img_organmask==organ_key]=1
         volume[:, :, i] = volume[:, :, i] * img_organmask
+        io.imwrite(f"{path_slice}{i:04}.tif", volume[:, :, i])
 
     print(f"{datetime.datetime.now()} Calculating MIP")
     mip = np.max(volume, axis=2)
     print(f"{datetime.datetime.now()} Writing TIFF MIP {np.amax(mip)} {np.sum(mip)}")
-    tiff = TIFFimage(mip, description='')
-    tiff.write_file(f"{path_out}/{organ_name}_norm_pred_MIP.tif", compression='lzw', verbose=False)
-
-    print(f"{datetime.datetime.now()} Writing TIFF")
-    for i in range(volume.shape[-1]):
-        tiff = TIFFimage(volume[:,:,i], description='')
-        tiff.write_file(f"{path_slice}{i:04}.tif", compression='lzw', verbose=False)
+    io.imwrite(f"{path_out}/{organ_name}_norm_pred_MIP.tif", mip)
 
     print(f"{datetime.datetime.now()} Writing Volume")
     filehandling.writeNifti(path_nifti_out, volume)
@@ -107,6 +104,7 @@ organ_names_list = list(keys_dict.values())
 cur_organ_key = int(organ_keys_list[organ_names_list.index(cur_organ_name)])
 
 path_region          = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop", "sync_C01region.pickledump")
+print(path_region)
 path_organmask_slice = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_mask")
 path_patches_pred    = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop", "local_C01_norm_infer")
 path_out             = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop")
