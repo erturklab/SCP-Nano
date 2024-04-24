@@ -7,7 +7,7 @@ import cc3d
 import nibabel as nib
 import math
 
-def intensity_stat_forebackground(path_organpred_slice, path_organraw_slice, path_output, organ_key, path_organmask_slice = None, threshold = 0.5):
+def intensity_stat_forebackground(path_organpred_slice, path_organraw_slice, path_output, organ_key, threshold = 0.5):
     """
     Statistical intensity distributions of segmented regions (foreground) and the rest (background) in one organ,
     Return the background intensity mean and foreground intensity mean
@@ -16,7 +16,6 @@ def intensity_stat_forebackground(path_organpred_slice, path_organraw_slice, pat
     path_organraw_slice: path of organ raw image sequence
     path_output: path to save intensity histgram
     organ_key: label value of the organ  
-    path_organmask_slice (optional): path of organ mask image sequence
     threshold: threshold to apply on prediction. Default is 0.5. The range is 0-1.
     """
     if not os.path.exists(path_output):
@@ -32,57 +31,52 @@ def intensity_stat_forebackground(path_organpred_slice, path_organraw_slice, pat
 
         img_raw = cv2.imread(path_organraw_slice + sorted(os.listdir(path_organraw_slice))[z], -1)
         img_raw = np.squeeze(img_raw)
-        
-        if path_organmask_slice is not None:
-            img_organmask = cv2.imread(path_organmask_slice + sorted(os.listdir(path_organmask_slice))[z], -1)
-            img_organmask = np.squeeze(img_organmask)
-            img_organmask[img_organmask==organ_key]=1
-
-        #print('intensity value of segmentation:', np.min(img_seg), np.max(img_seg))
-        #print('intensity value of raw image:', np.min(img_raw), np.max(img_raw))
+            
+        print('intensity value of segmentation:', np.min(img_seg), np.max(img_seg))
+        print('intensity value of raw image:', np.min(img_raw), np.max(img_raw))
 
         if threshold != -1:
             img_seg[img_seg  < threshold] = 0
             img_seg[img_seg  > threshold] = 1
 
-        img_seg_pro = np.copy(img_seg)
-        img_seg_pro = scipy.ndimage.binary_erosion(img_seg_pro).astype(img_seg_pro.dtype)
-        foreground_voxel_value = img_raw * img_seg_pro
-        if path_organmask_slice is not None:
-            foreground_voxel_value = foreground_voxel_value * img_organmask
+        foreground_voxel_value = img_raw * img_seg
             
         foreground_voxel_intensity = np.concatenate([foreground_voxel_intensity, foreground_voxel_value[foreground_voxel_value>0]])
 
-        img_seg_pro_ = np.copy(img_seg)
-        img_seg_pro_ = scipy.ndimage.binary_dilation(img_seg_pro_ , iterations=2).astype(img_seg_pro_.dtype)
-        background_seg = 1 - img_seg_pro_
+        img_seg_pro = np.copy(img_seg)
+        img_seg_pro = scipy.ndimage.binary_dilation(img_seg_pro).astype(img_seg_pro.dtype)
+        background_seg = 1 - img_seg_pro
         background_voxel_value = img_raw * background_seg
-        if path_organmask_slice is not None:
-            background_voxel_value = background_voxel_value * img_organmask
         background_voxel_intensity = np.concatenate([background_voxel_intensity, background_voxel_value[background_voxel_value>0]])
-
-    print('intensity range of foreground voxel:', np.min(foreground_voxel_intensity), np.max(foreground_voxel_intensity))
-    print('intensity range of background voxel:', np.min(background_voxel_intensity), np.max(background_voxel_intensity))
-
-    sorted_foreground_intensity = np.sort(foreground_voxel_intensity)
-    print('95 percent of foreground intensity thresh:', sorted_foreground_intensity[int(0.05*len(sorted_foreground_intensity))])
-    sorted_background_intensity = np.sort(background_voxel_intensity)
-    print('95 percent of background intensity thresh:', sorted_background_intensity[int(0.95*len(sorted_background_intensity))])
-    plt.figure(1)
-    plt.hist(foreground_voxel_intensity, bins=100)
-    plt.savefig(path_output +  "liver_histogram_foreground.png")
-    plt.figure(2)
-    plt.hist(background_voxel_intensity, bins=100)
-    plt.savefig(path_output +  "liver_histogram_background.png")
-    
-    background_mean = np.mean(sorted_background_intensity[int(0.05*len(sorted_background_intensity)):int(0.95*len(sorted_background_intensity))])
-    foreground_mean = np.mean(sorted_foreground_intensity[int(0.05*len(sorted_foreground_intensity)):int(0.95*len(sorted_foreground_intensity))])
+        
+    if len(foreground_voxel_intensity)==0:
+        background_mean = None
+        foreground_mean = None
+    else:  
+        print('intensity range of foreground voxel:', np.min(foreground_voxel_intensity), np.max(foreground_voxel_intensity))
+        print('intensity range of background voxel:', np.min(background_voxel_intensity), np.max(background_voxel_intensity))
+      
+        sorted_foreground_intensity = np.sort(foreground_voxel_intensity)
+        print('95 percent of foreground intensity thresh:', sorted_foreground_intensity[int(0.05*len(sorted_foreground_intensity))])
+        sorted_background_intensity = np.sort(background_voxel_intensity)
+        print('95 percent of background intensity thresh:', sorted_background_intensity[int(0.95*len(sorted_background_intensity))])
+        plt.figure(1)
+        plt.hist(foreground_voxel_intensity, bins=100)
+        plt.savefig(path_output +  "histogram_foreground.png")
+        plt.figure(2)
+        plt.hist(background_voxel_intensity, bins=100)
+        plt.savefig(path_output +  "histogram_background.png")
+        
+        background_mean = np.mean(sorted_background_intensity[int(0.05*len(sorted_background_intensity)):int(0.95*len(sorted_background_intensity))])
+        foreground_mean = np.mean(sorted_foreground_intensity[int(0.05*len(sorted_foreground_intensity)):int(0.95*len(sorted_foreground_intensity))])
+        
     print("estimated mean intensity value of background:", background_mean)
     print("estimated mean intensity value of foreground:", foreground_mean)
+        
     return background_mean, foreground_mean
 
 
-def intensity_contrast_signal(path_organpred_slice, path_organraw_slice, path_output, organ_key, background_mean, path_organmask_slice = None, threshold=0.5):
+def intensity_contrast_signal(path_organpred_slice, path_organraw_slice, path_output, organ_key, background_mean, threshold=0.5):
     """
     Quantification of segmented regions (foreground) in an organ,
     Return the relative intensity contrast sum of segmented regions compared to background.
@@ -92,7 +86,6 @@ def intensity_contrast_signal(path_organpred_slice, path_organraw_slice, path_ou
     path_output: path to save intensity histgram
     organ_key: label value of the organ  
     background_mean: the mean of background intensity in an organ
-    path_organmask_slice (optional): path of organ mask image sequence
     threshold: threshold to apply on prediction. Default is 0.5. The range is 0-1.
     """
     if not os.path.exists(path_output):
@@ -107,34 +100,24 @@ def intensity_contrast_signal(path_organpred_slice, path_organraw_slice, path_ou
 
         img_raw = cv2.imread(path_organraw_slice + sorted(os.listdir(path_organraw_slice))[z], -1)
         img_raw = np.squeeze(img_raw)
-        
-        if path_organmask_slice is not None:
-            img_organmask = cv2.imread(path_organmask_slice + sorted(os.listdir(path_organmask_slice))[z], -1)
-            img_organmask = np.squeeze(img_organmask)
-            img_organmask[img_organmask==organ_key]=1
-            print(np.unique(img_organmask))
  
-        print('intensity value of segmentation:', np.min(img_seg), np.max(img_seg))
         print('intensity value of raw image:', np.min(img_raw), np.max(img_raw))
 
         if threshold != -1:
             img_seg[img_seg  < threshold] = 0
             img_seg[img_seg  > threshold] = 1
 
-        img_seg_pro = np.copy(img_seg)
-        img_seg_pro = scipy.ndimage.binary_erosion(img_seg_pro).astype(img_seg_pro.dtype)
-        masked_voxel_value = img_raw * img_seg_pro
-        if path_organmask_slice is not None:
-            masked_voxel_value = masked_voxel_value * img_organmask
 
-        foreground_voxel_value = masked_voxel_value[masked_voxel_value>0]
-        foreground_relative_contrast = (foreground_voxel_value-background_mean) / background_mean # Weber contrast
+        foreground_voxel_value = img_raw * img_seg
+
+        positive_foreground_voxel_value = foreground_voxel_value[foreground_voxel_value>0]
+        foreground_relative_contrast = (positive_foreground_voxel_value-background_mean) / background_mean # Weber contrast
         relative_contrast = np.concatenate([relative_contrast, foreground_relative_contrast])
         
     print('foreground relative contrast range:', np.min(relative_contrast), np.max(relative_contrast))
     plt.figure()
     plt.hist(relative_contrast, bins = 200)
-    plt.savefig(path_output +  "liver_relative_contrast.png")
+    plt.savefig(path_output +  "relative_contrast.png")
     print("estimated foreground relative contrast sum:", np.sum(relative_contrast[relative_contrast>0]))
     return np.sum(relative_contrast[relative_contrast>0])
 
@@ -175,12 +158,21 @@ def generate_heatmap_3d(path_pred, path_heatmap, path_raw, window_size=[16, 16, 
 
     """
     assert path_raw != "", "Please specify a raw path!"
-    raw_img = nib.load(path_raw).get_data()
+    raw_vol = nib.load(path_raw)
+    raw_img = raw_vol.get_data()
+    affine = raw_vol.affine
+    header = raw_vol.header
+    del raw_vol
     print(np.min(raw_img), np.max(raw_img))
+    
+    
+    if background_mean == None:
+        density_arr = np.zeros_like(raw_img, dtype=np.float32)
+        heatmap = nib.Nifti1Image(density_arr, affine, header)
+        nib.save(heatmap, path_heatmap)
+        return
 
     pred_vol = nib.load(path_pred)
-    affine = pred_vol.affine
-    header = pred_vol.header
     pred_arr = pred_vol.get_data()
     del pred_vol
     pred_arr[pred_arr > 0] = 1
@@ -201,7 +193,7 @@ def generate_heatmap_3d(path_pred, path_heatmap, path_raw, window_size=[16, 16, 
     # get density array by sliding window
     grid_per_dim = [math.ceil(img_shape[i] / window_size[i]) for i in range(len(img_shape))]
     print(grid_per_dim)
-    density_arr = np.zeros_like(raw_img, dtype=np.float)
+    density_arr = np.zeros_like(raw_img, dtype=np.float32)
     # struct = scipy.ndimage.generate_binary_structure(3, 1)
     for id_x in range(grid_per_dim[0]):
         start_x = id_x * window_size[0]
@@ -221,12 +213,9 @@ def generate_heatmap_3d(path_pred, path_heatmap, path_raw, window_size=[16, 16, 
 
                 pred_in_window = pred_arr[start_x:end_x, start_y:end_y, start_z:end_z]
                 raw_in_window = raw_img[start_x:end_x, start_y:end_y, start_z:end_z]
-                #pred_in_window_pro = np.copy(pred_in_window)
-                #pred_in_window_pro = scipy.ndimage.binary_erosion(pred_in_window_pro, structure= struct).astype(pred_in_window_pro.dtype)
                 pred_in_window_pro = component_filter(pred_in_window, component_thresh=3)
                 if np.sum(pred_in_window_pro)==0:
                     density_arr[start_x:end_x, start_y:end_y, start_z:end_z] = 0
-                    #print('local relative contrast: 0')
                 else:
                     masked_voxel_value = raw_in_window * pred_in_window_pro
                     foreground_voxel_value = masked_voxel_value[masked_voxel_value>0]
@@ -268,23 +257,25 @@ while line:
     line = f_organ_keys.readline()
 organ_keys_list = list(keys_dict.keys())
 organ_names_list = list(keys_dict.values())
-cur_organ_key = organ_keys_list[organ_names_list.index(cur_organ_name)]
+cur_organ_key = int(organ_keys_list[organ_names_list.index(cur_organ_name)])
 
 path_organpred_slice = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop", "TIFF_pred_norm", "")
 path_organraw_slice = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_raw", "")
-path_organmask_slice = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_mask", "")
 path_output = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop", "")
 
 # Estimate background intensity mean
-background_mean, _ = intensity_stat_forebackground(path_organpred_slice=path_organpred_slice, path_organraw_slice=path_organraw_slice, 
-                                                   path_output=path_output, organ_key=cur_organ_key, path_organmask_slice=path_organmask_slice, threshold = 0.5)
+background_mean, foreground_mean = intensity_stat_forebackground(path_organpred_slice=path_organpred_slice, path_organraw_slice=path_organraw_slice, 
+                                                   path_output=path_output, organ_key=cur_organ_key, threshold = 0.5)
 
 # Quantification of nanoparticle segmentation by relative intensity contrast sum
-relative_contrast_sum = intensity_contrast_signal(path_organpred_slice=path_organpred_slice, path_organraw_slice=path_organraw_slice, 
-                                                  path_output=path_output, organ_key=cur_organ_key, background_mean=background_mean, 
-                                                  path_organmask_slice = path_organmask_slice, threshold=0.5)
+if foreground_mean == None:
+    print("No significant particles are detected")
+    print("relative_contrast_sum:", 0)
+else:
+    relative_contrast_sum = intensity_contrast_signal(path_organpred_slice=path_organpred_slice, path_organraw_slice=path_organraw_slice, 
+                                                  path_output=path_output, organ_key=cur_organ_key, background_mean=background_mean, threshold=0.5)
+    print("relative_contrast_sum:", relative_contrast_sum)
 
-print(relative_contrast_sum)
 path_raw_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_raw.nii.gz")
 path_pred_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_crop", f"organ_{organ_name}_pred.nii.gz")
 path_heatmap_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{organ_name}_crop", f"organ_{organ_name}_contrast_density_norm.nii.gz")
