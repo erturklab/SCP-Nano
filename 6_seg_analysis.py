@@ -7,6 +7,18 @@ import cc3d
 import nibabel as nib
 import math
 
+def update_intensity_mean(voxel_intensity, intensity_mean, voxel_cnt):
+    print('intensity range:', np.min(voxel_intensity), np.max(voxel_intensity))
+    voxel_intensity = np.sort(voxel_intensity)
+    clip_voxel_intensity = voxel_intensity[int(0.05*len(voxel_intensity)):int(0.95*len(voxel_intensity))]
+    update_voxel_cnt = voxel_cnt + len(clip_voxel_intensity)
+    
+    update_intensity_mean = (intensity_mean * voxel_cnt + np.sum(clip_voxel_intensity))/update_voxel_cnt
+    
+    print('Updated mean mean and voxel count:', update_intensity_mean, update_voxel_cnt)
+    return update_intensity_mean, update_voxel_cnt
+    
+
 def intensity_stat_forebackground(path_organpred_slice, path_organraw_slice, path_output, organ_key, threshold = 0.5):
     """
     Statistical intensity distributions of segmented regions (foreground) and the rest (background) in one organ,
@@ -21,8 +33,10 @@ def intensity_stat_forebackground(path_organpred_slice, path_organraw_slice, pat
     if not os.path.exists(path_output):
         os.mkdir(path_output)
 
-    background_voxel_intensity = np.array([])
-    foreground_voxel_intensity = np.array([])
+    background_intensity_mean = 0.0
+    background_voxel_cnt = 0
+    foreground_intensity_mean = 0.0
+    foreground_voxel_cnt = 0
     for z, z_slice in enumerate(sorted(os.listdir(path_organpred_slice))):
         print(z_slice)
         print(sorted(os.listdir(path_organraw_slice))[z])
@@ -41,39 +55,23 @@ def intensity_stat_forebackground(path_organpred_slice, path_organraw_slice, pat
 
         foreground_voxel_value = img_raw * img_seg
             
-        foreground_voxel_intensity = np.concatenate([foreground_voxel_intensity, foreground_voxel_value[foreground_voxel_value>0]])
+        foreground_voxel_intensity = foreground_voxel_value[foreground_voxel_value>0]
 
         img_seg_pro = np.copy(img_seg)
         img_seg_pro = scipy.ndimage.binary_dilation(img_seg_pro).astype(img_seg_pro.dtype)
         background_seg = 1 - img_seg_pro
         background_voxel_value = img_raw * background_seg
-        background_voxel_intensity = np.concatenate([background_voxel_intensity, background_voxel_value[background_voxel_value>0]])
+        background_voxel_intensity = background_voxel_value[background_voxel_value>0]
         
-    if len(foreground_voxel_intensity)==0:
-        background_mean = None
-        foreground_mean = None
-    else:  
-        print('intensity range of foreground voxel:', np.min(foreground_voxel_intensity), np.max(foreground_voxel_intensity))
-        print('intensity range of background voxel:', np.min(background_voxel_intensity), np.max(background_voxel_intensity))
-      
-        sorted_foreground_intensity = np.sort(foreground_voxel_intensity)
-        print('95 percent of foreground intensity thresh:', sorted_foreground_intensity[int(0.05*len(sorted_foreground_intensity))])
-        sorted_background_intensity = np.sort(background_voxel_intensity)
-        print('95 percent of background intensity thresh:', sorted_background_intensity[int(0.95*len(sorted_background_intensity))])
-        plt.figure(1)
-        plt.hist(foreground_voxel_intensity, bins=100)
-        plt.savefig(path_output +  "histogram_foreground.png")
-        plt.figure(2)
-        plt.hist(background_voxel_intensity, bins=100)
-        plt.savefig(path_output +  "histogram_background.png")
+        if len(background_voxel_intensity)>0:
+            background_intensity_mean, background_voxel_cnt = update_intensity_mean(background_voxel_intensity, background_intensity_mean, background_voxel_cnt)
+        if len(foreground_voxel_intensity)>0:
+            foreground_intensity_mean, foreground_voxel_cnt = update_intensity_mean(foreground_voxel_intensity, foreground_intensity_mean, foreground_voxel_cnt)
         
-        background_mean = np.mean(sorted_background_intensity[int(0.05*len(sorted_background_intensity)):int(0.95*len(sorted_background_intensity))])
-        foreground_mean = np.mean(sorted_foreground_intensity[int(0.05*len(sorted_foreground_intensity)):int(0.95*len(sorted_foreground_intensity))])
+    print("estimated mean intensity value of background:", background_intensity_mean)
+    print("estimated mean intensity value of foreground:", foreground_intensity_mean)
         
-    print("estimated mean intensity value of background:", background_mean)
-    print("estimated mean intensity value of foreground:", foreground_mean)
-        
-    return background_mean, foreground_mean
+    return background_intensity_mean, foreground_intensity_mean
 
 
 def intensity_contrast_signal(path_organpred_slice, path_organraw_slice, path_output, organ_key, background_mean, threshold=0.5):
@@ -122,7 +120,6 @@ def intensity_contrast_signal(path_organpred_slice, path_organraw_slice, path_ou
     return np.sum(relative_contrast[relative_contrast>0])
 
 
-
 def component_filter(volume, component_thresh=3):
     """
     filter small segmented components by a threshold of the size
@@ -138,7 +135,6 @@ def component_filter(volume, component_thresh=3):
     components_to_remove =np.where(cnt<component_thresh)[0]
 
     for c in range(len(components_to_remove)):
-
         labels[labels==components_to_remove[c]]=0
     labels[labels>0]=1
     
@@ -268,7 +264,7 @@ background_mean, foreground_mean = intensity_stat_forebackground(path_organpred_
                                                    path_output=path_output, organ_key=cur_organ_key, threshold = 0.5)
 
 # Quantification of nanoparticle segmentation by relative intensity contrast sum
-if foreground_mean == None:
+if foreground_mean == 0.0:
     print("No significant particles are detected")
     print("relative_contrast_sum:", 0)
 else:
