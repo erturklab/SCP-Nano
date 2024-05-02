@@ -38,6 +38,7 @@ def perorgan_den_to_wholebody(path_density_nifti, path_raw, bb, path_whole_body_
             cur_organ_den_slice[x_min:x_max, y_min:y_max] = organ_den_img[:,:,z_in_organ]
         tiff = TIFFimage(cur_organ_den_slice, description='')
         tiff.write_file(f"{path_whole_body_out}/slice_{z:04}.tif", compression='lzw', verbose=False)
+    del organ_den_img
 
 def combine_multichannel(dir_multichannel_list, path_combined_out):
     """
@@ -58,24 +59,39 @@ def combine_multichannel(dir_multichannel_list, path_combined_out):
         for channel in dir_multichannel_list:
             cur_channel = cv2.imread(channel + slicelist[z], -1)
             cur_slice = cur_slice + cur_channel
-            
         tiff = TIFFimage(cur_slice, description='')
-        tiff.write_file(f"{path_combined_out}/slice_{z:04}.tif", compression='lzw', verbose=False) 
-
+        tiff.write_file(f"{path_combined_out}/slice_{z:04}.tif", compression='lzw', verbose=False)   
+ 
+def get_organ_name(key):
+    global keys
+    return keys[str(key)]
 # Root of whole-body image data    
 dir_wholebody_data            = ""
-organ_name_list               = ['head', 'heart', 'lung', 'liver', 'spleen', 'kideny']
+organ_name_list               = ['head', 'heart', 'lung', 'liver', 'spleen', 'kidney'] #  
 path_bbs_pickle               = os.path.join(dir_wholebody_data, "bbs.pickledump")
 path_wholebody_raw            = os.path.join(dir_wholebody_data, "C01", "")
 
 f_bbs = open(path_bbs_pickle, 'rb')
 bbs=pickle.load(f_bbs)
+print(bbs)
+path_organ_keys           = os.path.join(dir_wholebody_data, "organ_keys.txt")
+keys_dict = {}
+f_organ_keys = open(path_organ_keys)
+line = f_organ_keys.readline()
+while line:
+    organ_line = line.replace('\n', '')
+    organ_key = organ_line.split(":")[0]
+    organ_name = organ_line.split(":")[1]
+    keys_dict[organ_key] = organ_name
+    line = f_organ_keys.readline()
+organ_keys_list = list(keys_dict.keys())
+organ_names_list = list(keys_dict.values())   
+
 for cur_organ_name in organ_name_list:
-    
     path_organ_density_nifti = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop", f"organ_{cur_organ_name}_contrast_density_norm.nii.gz")
     path_map_organ_density_to_wholebody = os.path.join(dir_wholebody_data, "organ_results", f"organ_{cur_organ_name}_crop", f"{cur_organ_name}_contrast_den_in_wholebody", "")
 
-    bb_cur_organ = bbs[cur_organ_name]
+    bb_cur_organ = bbs[int(organ_keys_list[organ_names_list.index(cur_organ_name)])]
     print(bb_cur_organ)
     perorgan_den_to_wholebody(path_density_nifti=path_organ_density_nifti, path_raw=path_wholebody_raw,
                               bb=bb_cur_organ, path_whole_body_out=path_map_organ_density_to_wholebody)
