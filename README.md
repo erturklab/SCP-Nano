@@ -119,7 +119,7 @@ Overview of the SCP-Nano workflow. Individual steps are explained below.
 * Run 5_seg_rebuild.py. The resulted segmentation map TIFF series will be saved in the folder `dir_wholebody_data/organ_results/organ_{organ name}_crop/TIFF_pred_norm/`.
 
 ### 6. Segmented nanoparticle quantification and density visualization per organ
-* Set the variable `dir_wholebody_data` in [6_seg_analysis.py](6_seg_analysis.py) as in Step 1, and the variable `organ_name` as the name of the organ.
+* Set the variable `dir_wholebody_data` in [6_seg_analysis.py](6_seg_analysis.py) as in Step 1, and the variable `cur_organ_name` as the name of the organ.
 
 * Run 6_seg_analysis.py. It will quantify segmented nanoparticles by relative intensity contrast sum, and generate the density map as a NifTi file.
 
