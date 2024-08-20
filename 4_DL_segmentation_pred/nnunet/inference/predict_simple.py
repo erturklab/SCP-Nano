@@ -13,8 +13,6 @@
 #    limitations under the License.
 
 import sys
-#sys.path.insert(0, '/lustre/groups/iterm/Izabela/nnUnet_slurm/nnUNet/')
-#sys.path.insert(0,'/lustre/groups/iterm/Izabela/nnUnet_slurm/nnUNet/nnunet/')
 import argparse
 import torch
 
