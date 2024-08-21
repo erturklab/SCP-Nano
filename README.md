@@ -66,7 +66,7 @@ x 1000, therefore SCP-Nano has such a large requirement on RAM.
 	``` 
 
 ## Pipeline workflow
-<img src="nerve_seg_example.png" width="300">
+![workflow](./images/workflow.png)
 
 Overview of the SCP-Nano workflow. Individual steps are explained below.
 
