@@ -9,4 +9,5 @@ connected-components-3d==3.10.5
 scipy==1.10.0
 matplotlib==3.6.3
 monai==1.0.1
-
+tifffile
+imagecodecs
