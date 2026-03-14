@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pickle
 import pandas as pd
-import imageio as io
+import tifffile
 
 def _get_bb(img:np.array, index:int):
     """
@@ -169,13 +169,13 @@ def mask_organs(organs_bbs, path_wholebody_raw, path_wholebody_organ_mask, path_
             try:
                 if zmin <= z < zmax:                    
                     z_idx = z-zmin
-                    io.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_raw', f"slice_{z_idx:04}.tif"), img_raw[xmin:xmax, ymin:ymax])
-                    io.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_mask', f"slice_{z_idx:04}.tif"), img_organ_mask[xmin:xmax, ymin:ymax])
+                    tifffile.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_raw', f"slice_{z_idx:04}.tif"), img_raw[xmin:xmax, ymin:ymax], compression='lzw')
+                    tifffile.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_mask', f"slice_{z_idx:04}.tif"), img_organ_mask[xmin:xmax, ymin:ymax], compression='lzw')
             except IndexError as ie:
                 if zmin <= z < zmax:
                     z_idx = z-zmin
-                    io.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_raw', f"slice_{z_idx:04}.tif"), img_raw[xmin:xmax, ymin:ymax])
-                    io.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_mask', f"slice_{z_idx:04}.tif"), img_organ_mask[xmin:xmax, ymin:ymax])
+                    tifffile.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_raw', f"slice_{z_idx:04}.tif"), img_raw[xmin:xmax, ymin:ymax], compression='lzw')
+                    tifffile.imwrite(os.path.join(path_organ_output, 'organ_' + organ_name + '_mask', f"slice_{z_idx:04}.tif"), img_organ_mask[xmin:xmax, ymin:ymax], compression='lzw')
 
     print("Done.") 
 
